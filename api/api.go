@@ -4,29 +4,25 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
-	"github.com/mp-hl-2021/chat/usecases"
+	"github.com/mp-hl-2021/lenkeforkortelse/usecases"
 	"net/http"
 )
 
-
-
 type Api struct {
 	AccountUseCases usecases.AccountUseCasesInterface
-	LinkUseCases usecases.LinkUseCasesInterface
+	LinkUseCases    usecases.LinkUseCasesInterface
 }
 
 func NewApi(a usecases.AccountUseCasesInterface, l usecases.LinkUseCasesInterface) *Api {
 	return &Api{
 		AccountUseCases: a,
-		LinkUseCases: l,
+		LinkUseCases:    l,
 	}
 }
 
-// NewRouter creates all endpoint for chat app.
+// NewRouter creates all endpoints for chat app.
 func (a *Api) Router() http.Handler {
 	router := mux.NewRouter()
-
-
 
 	// / post request to create link <link to source>, returns <short link>
 	router.HandleFunc("/", a.postCreateLink).Methods(http.MethodPost)
@@ -135,9 +131,8 @@ func (a *Api) getAccount(w http.ResponseWriter, r *http.Request) {
 }
 
 type postAccountLinkRequestModel struct {
-	Id string `json:"id"`
+	Id   string `json:"id"`
 	Link string `json:"link"`
-
 }
 
 // postCreateUserLink handles request for creating short link from specific user
@@ -147,12 +142,10 @@ func (a *Api) postCreateUserLink(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusNotImplemented)
 }
 
-
 type getLinkDeleteRequestModel struct {
-	Id string `json:"id"`
+	Id   string `json:"id"`
 	Link string `json:"link"`
 }
-
 
 // getDeleteLink handles link deletion request from user
 func (a *Api) getDeleteLink(w http.ResponseWriter, r *http.Request) {

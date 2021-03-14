@@ -1,16 +1,14 @@
 package main
 
 import (
-	"github.com/mp-hl-2021/chat/api"
-	"github.com/mp-hl-2021/chat/usecases"
+	"github.com/mp-hl-2021/lenkeforkortelse/api"
+	"github.com/mp-hl-2021/lenkeforkortelse/usecases"
 	"net/http"
 	"time"
 )
 
 func main() {
-	accountUseCases := &usecases.AccountUseCases{}
-
-	service := api.NewApi(accountUseCases)
+	service := api.NewApi(&usecases.AccountUseCases{}, &usecases.LinkUseCases{})
 
 	server := http.Server{
 		Addr:         "localhost:8080",
@@ -24,4 +22,3 @@ func main() {
 		panic(err)
 	}
 }
-
