@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/mp-hl-2021/chat/usecases"
+	"github.com/mp-hl-2021/lenkeforkortelse/usecases"
 	"net/http"
 	"net/http/httptest"
 	"testing"
