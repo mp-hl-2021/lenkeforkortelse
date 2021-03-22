@@ -24,8 +24,8 @@ func NewApi(a usecases.AccountUseCasesInterface, l usecases.LinkUseCasesInterfac
 func (a *Api) Router() http.Handler {
 	router := mux.NewRouter()
 
-	// / post request to create link <link to source>, returns <short link>
-	router.HandleFunc("/", a.postCreateLink).Methods(http.MethodPost)
+	// /links post request to create link <link to source>, returns <short link>
+	router.HandleFunc("/links", a.postCreateLink).Methods(http.MethodPost)
 
 	// /{link} get redirect
 	router.HandleFunc("/{link_id}", a.getPage).Methods(http.MethodGet)
