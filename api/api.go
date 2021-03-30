@@ -1,11 +1,14 @@
 package api
 
 import (
-	"encoding/json"
-	"fmt"
 	"github.com/gorilla/mux"
 	"github.com/mp-hl-2021/lenkeforkortelse/usecases"
+
+	"context"
+	"encoding/json"
+	"fmt"
 	"net/http"
+	"strings"
 )
 
 type Api struct {
@@ -20,7 +23,7 @@ func NewApi(a usecases.AccountUseCasesInterface, l usecases.LinkUseCasesInterfac
 	}
 }
 
-// NewRouter creates all endpoints for chat app.
+// NewRouter creates all endpoints for app.
 func (a *Api) Router() http.Handler {
 	router := mux.NewRouter()
 
@@ -34,13 +37,13 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/signin", a.postSignin).Methods(http.MethodPost)
 
 	// lookup all my links
-	router.HandleFunc("/accounts/{id}", a.getAccount).Methods(http.MethodGet)
+	router.HandleFunc("/accounts/{id}", a.authorize(a.getAccount)).Methods(http.MethodGet)
 
 	// create link with account
-	router.HandleFunc("/accounts/{id}/", a.postCreateUserLink).Methods(http.MethodGet)
+	router.HandleFunc("/accounts/{id}/", a.authorize(a.postCreateUserLink)).Methods(http.MethodGet)
 
 	// /accounts/{id}/delete/{link_id}
-	router.HandleFunc("/accounts/{id}/delete/{link_id}", a.getDeleteLink).Methods(http.MethodGet)
+	router.HandleFunc("/accounts/{id}/delete/{link_id}", a.authorize(a.getDeleteLink)).Methods(http.MethodGet)
 
 	return router
 }
@@ -59,8 +62,21 @@ func (a *Api) postSignup(w http.ResponseWriter, r *http.Request) {
 	}
 
 	acc, err := a.AccountUseCases.CreateAccount(m.Login, m.Password)
-	if err != nil { // todo: map domain errors to http error codes
-		w.WriteHeader(http.StatusInternalServerError)
+	if err != nil {
+		switch err {
+		case
+			usecases.ErrInvalidLoginString,
+			usecases.ErrInvalidPasswordString,
+			usecases.ErrTooShortString,
+			usecases.ErrTooLongString,
+			usecases.ErrNoCapitalLetters,
+			usecases.ErrNoDigits:
+
+			w.WriteHeader(http.StatusBadRequest)
+		default:
+			w.WriteHeader(http.StatusInternalServerError)
+		}
+		fmt.Println(err)
 		return
 	}
 
@@ -84,7 +100,10 @@ func (a *Api) postSignin(w http.ResponseWriter, r *http.Request) {
 	}
 
 	w.Header().Set("Content-Type", "application/jwt")
-	w.Write([]byte(token))
+	if _, err := w.Write([]byte(token)); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -106,7 +125,10 @@ func (a *Api) postCreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	w.Write([]byte(shortLink))
+	if _, err := w.Write([]byte(shortLink)); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 	w.WriteHeader(http.StatusOK)
 }
 
@@ -126,8 +148,14 @@ type getAccountResponseModel struct {
 
 // getAccount handles request for user's account information.
 func (a *Api) getAccount(w http.ResponseWriter, r *http.Request) {
-	// todo: authorize user, list all links for this account
-	w.WriteHeader(http.StatusNotImplemented)
+	// todo: list all links for this account
+
+	// Following implementation was added just to check that the authentication works correctly and the URLs are protected
+	if _, err := w.Write([]byte("Hi!")); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 type postAccountLinkRequestModel struct {
@@ -152,4 +180,23 @@ func (a *Api) getDeleteLink(w http.ResponseWriter, r *http.Request) {
 	// todo: authorize user
 	// todo: use mux.Var(r) to parse {link_id} into m.Link, and {id} into m.Id
 	w.WriteHeader(http.StatusNotImplemented)
+}
+
+func (a *Api) authorize(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		bearHeader := r.Header.Get("Authorization")
+		strArr := strings.Split(bearHeader, " ")
+		if len(strArr) != 2 {
+			w.WriteHeader(http.StatusBadRequest)
+			return
+		}
+		token := strArr[1]
+		id, err := a.AccountUseCases.Authenticate(token)
+		if err != nil {
+			w.WriteHeader(http.StatusUnauthorized)
+			return
+		}
+		ctx := context.WithValue(r.Context(), "account_id", id)
+		handler(w, r.WithContext(ctx))
+	}
 }
