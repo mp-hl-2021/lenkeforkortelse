@@ -5,7 +5,7 @@ import (
 	"github.com/mp-hl-2021/lenkeforkortelse/auth"
 	"github.com/mp-hl-2021/lenkeforkortelse/usecases"
 	"github.com/mp-hl-2021/lenkeforkortelse/accountstorage"
-	
+
 	"flag"
 	"io/ioutil"
 	"net/http"
@@ -20,7 +20,7 @@ func main() {
 	privateKeyBytes, err := ioutil.ReadFile(*privateKeyPath)
 	publicKeyBytes, err := ioutil.ReadFile(*publicKeyPath)
 
-	a, err := auth.NewJwt(privateKeyBytes, publicKeyBytes, 100*time.Minute)
+	a, err := auth.NewJwtHandler(privateKeyBytes, publicKeyBytes, 100 * time.Minute)
 	if err != nil {
 		panic(err)
 	}
