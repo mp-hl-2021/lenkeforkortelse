@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
-	"github.com/mp-hl-2021/lenkeforkortelse/usecases"
+	"github.com/mp-hl-2021/lenkeforkortelse/usecases/account"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -12,18 +12,18 @@ import (
 
 type AccountUseCasesMock struct {}
 
-func (AccountUseCasesMock) CreateAccount(login, password string) (usecases.Account, error) {
+func (AccountUseCasesMock) CreateAccount(login, password string) (account.Account, error) {
 	switch login {
 	case "alice":
-		return usecases.Account{
+		return account.Account{
 			Id: "1",
 		}, nil
 	default:
-		return usecases.Account{}, errors.New("failed to create an account")
+		return account.Account{}, errors.New("failed to create an account")
 	}
 }
 
-func (AccountUseCasesMock) GetAccountById(id string) (usecases.Account, error) {
+func (AccountUseCasesMock) GetAccountById(id string) (account.Account, error) {
 	panic("implement me")
 }
 
