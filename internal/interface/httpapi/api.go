@@ -1,13 +1,12 @@
-package api
+package httpapi
 
 import (
-	"github.com/gorilla/mux"
-	"github.com/mp-hl-2021/lenkeforkortelse/usecases/account"
-	"github.com/mp-hl-2021/lenkeforkortelse/usecases/link"
-
 	"context"
 	"encoding/json"
 	"fmt"
+	"github.com/gorilla/mux"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/account"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/link"
 	"net/http"
 	"strings"
 )

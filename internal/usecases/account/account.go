@@ -1,8 +1,8 @@
 package account
 
 import (
-	"github.com/mp-hl-2021/lenkeforkortelse/accountstorage"
-	"github.com/mp-hl-2021/lenkeforkortelse/auth"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/domain/account"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/service/token"
 
 	"errors"
 	"golang.org/x/crypto/bcrypt"
@@ -37,8 +37,8 @@ type AccountUseCasesInterface interface {
 }
 
 type AccountUseCases struct {
-	AccountStorage accountstorage.Interface
-	Auth           auth.Interface
+	AccountStorage account.Interface
+	Auth           token.Interface
 }
 
 func (a *AccountUseCases) CreateAccount(login, password string) (Account, error) {
@@ -52,7 +52,7 @@ func (a *AccountUseCases) CreateAccount(login, password string) (Account, error)
 	if err != nil {
 		return Account{}, err
 	}
-	acc, err := a.AccountStorage.CreateAccount(accountstorage.Credentials{
+	acc, err := a.AccountStorage.CreateAccount(account.Credentials{
 		Login:    login,
 		Password: string(hashedPassword),
 	})

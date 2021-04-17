@@ -1,7 +1,7 @@
 package link
 
 import (
-	"github.com/mp-hl-2021/lenkeforkortelse/linkstorage"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/domain/link"
 	"math/rand"
 	"time"
 	"unsafe"
@@ -21,7 +21,7 @@ type Link struct {
 }
 
 type LinkUseCases struct {
-	LinkStorage linkstorage.Interface
+	LinkStorage link.Interface
 }
 
 type LinkUseCasesInterface interface {
@@ -41,7 +41,7 @@ func (a *LinkUseCases) GetLinkByLinkId(lnk string) (string, error) {
 
 func (a *LinkUseCases) CutLink(lnk string, accountId *string) (string, error) {
 	linkId := a.generateFreeLinkId()
-	l, err := a.LinkStorage.StoreLink(linkstorage.Link{
+	l, err := a.LinkStorage.StoreLink(link.Link{
 		LinkId:    linkId,
 		Link:      lnk,
 		AccountId: accountId,
