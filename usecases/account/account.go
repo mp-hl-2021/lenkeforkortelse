@@ -1,11 +1,11 @@
-package usecases
+package account
 
 import (
-	"github.com/mp-hl-2021/lenkeforkortelse/auth"
 	"github.com/mp-hl-2021/lenkeforkortelse/accountstorage"
+	"github.com/mp-hl-2021/lenkeforkortelse/auth"
 
-	"golang.org/x/crypto/bcrypt"
 	"errors"
+	"golang.org/x/crypto/bcrypt"
 	"unicode"
 )
 

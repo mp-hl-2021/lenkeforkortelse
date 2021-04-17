@@ -2,7 +2,8 @@ package api
 
 import (
 	"github.com/gorilla/mux"
-	"github.com/mp-hl-2021/lenkeforkortelse/usecases"
+	"github.com/mp-hl-2021/lenkeforkortelse/usecases/account"
+	"github.com/mp-hl-2021/lenkeforkortelse/usecases/link"
 
 	"context"
 	"encoding/json"
@@ -12,11 +13,11 @@ import (
 )
 
 type Api struct {
-	AccountUseCases usecases.AccountUseCasesInterface
-	LinkUseCases    usecases.LinkUseCasesInterface
+	AccountUseCases account.AccountUseCasesInterface
+	LinkUseCases    link.LinkUseCasesInterface
 }
 
-func NewApi(a usecases.AccountUseCasesInterface, l usecases.LinkUseCasesInterface) *Api {
+func NewApi(a account.AccountUseCasesInterface, l link.LinkUseCasesInterface) *Api {
 	return &Api{
 		AccountUseCases: a,
 		LinkUseCases:    l,
@@ -40,7 +41,7 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/accounts/{id}", a.authorize(a.getAccount)).Methods(http.MethodGet)
 
 	// create link with account
-	router.HandleFunc("/accounts/{id}/", a.authorize(a.postCreateUserLink)).Methods(http.MethodGet)
+	router.HandleFunc("/accounts/{id}/", a.authorize(a.postCreateUserLink)).Methods(http.MethodPost)
 
 	// /accounts/{id}/delete/{link_id}
 	router.HandleFunc("/accounts/{id}/delete/{link_id}", a.authorize(a.getDeleteLink)).Methods(http.MethodGet)
@@ -65,12 +66,12 @@ func (a *Api) postSignup(w http.ResponseWriter, r *http.Request) {
 	if err != nil {
 		switch err {
 		case
-			usecases.ErrInvalidLoginString,
-			usecases.ErrInvalidPasswordString,
-			usecases.ErrTooShortString,
-			usecases.ErrTooLongString,
-			usecases.ErrNoCapitalLetters,
-			usecases.ErrNoDigits:
+			account.ErrInvalidLoginString,
+			account.ErrInvalidPasswordString,
+			account.ErrTooShortString,
+			account.ErrTooLongString,
+			account.ErrNoCapitalLetters,
+			account.ErrNoDigits:
 
 			w.WriteHeader(http.StatusBadRequest)
 		default:
@@ -104,7 +105,6 @@ func (a *Api) postSignin(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
 }
 
 type postLinkRequestModel struct {
@@ -119,7 +119,7 @@ func (a *Api) postCreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortLink, err := a.LinkUseCases.CutLink(m.Link)
+	shortLink, err := a.LinkUseCases.CutLink(m.Link, nil)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -129,57 +129,140 @@ func (a *Api) postCreateLink(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
-}
-
-type getPageResponseModel struct {
-	Link string `json:"link"`
 }
 
 // getPage handles request for short link, redirect to user's source web page
 func (a *Api) getPage(w http.ResponseWriter, r *http.Request) {
-	// todo: use mux.Var(r) to parse {link_id} into m.Link
-	w.WriteHeader(http.StatusNotImplemented)
+	vars := mux.Vars(r)
+	linkId, ok := vars["link_id"]
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	l, err := a.LinkUseCases.GetLinkByLinkId(linkId)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	http.Redirect(w, r, l, http.StatusSeeOther)
 }
 
 type getAccountResponseModel struct {
-	Id string `json:"id"`
+	Links []link.Link `json:"links"`
 }
 
 // getAccount handles request for user's account information.
 func (a *Api) getAccount(w http.ResponseWriter, r *http.Request) {
-	// todo: list all links for this account
+	aid, ok := r.Context().Value("account_id").(string)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-	// Following implementation was added just to check that the authentication works correctly and the URLs are protected
-	if _, err := w.Write([]byte("Hi!")); err != nil {
+	vars := mux.Vars(r)
+	accountId, ok := vars["id"]
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if accountId != aid {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
-	w.WriteHeader(http.StatusOK)
+
+	links, err := a.LinkUseCases.GetLinksByAccountId(aid)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	ret := getAccountResponseModel{Links: make([]link.Link, 0, len(links))}
+	for _, l := range links {
+		ret.Links = append(ret.Links, link.Link{
+			LinkId: l.LinkId,
+			Link:   l.Link,
+		})
+	}
+
+	if err := json.NewEncoder(w).Encode(ret); err != nil {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 }
 
 type postAccountLinkRequestModel struct {
-	Id   string `json:"id"`
 	Link string `json:"link"`
 }
 
 // postCreateUserLink handles request for creating short link from specific user
 func (a *Api) postCreateUserLink(w http.ResponseWriter, r *http.Request) {
-	// todo: authorize user
-	// todo: use mux.Var(r) to parse {link_id} into m.Link, and {id} into m.Id
-	w.WriteHeader(http.StatusNotImplemented)
-}
+	aid, ok := r.Context().Value("account_id").(string)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
 
-type getLinkDeleteRequestModel struct {
-	Id   string `json:"id"`
-	Link string `json:"link"`
+	vars := mux.Vars(r)
+	accountId, ok := vars["id"]
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if accountId != aid {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	var m postAccountLinkRequestModel
+	if err := json.NewDecoder(r.Body).Decode(&m); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	shortLink, err := a.LinkUseCases.CutLink(m.Link, &aid)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+
+	if _, err := w.Write([]byte(shortLink)); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
 }
 
 // getDeleteLink handles link deletion request from user
 func (a *Api) getDeleteLink(w http.ResponseWriter, r *http.Request) {
-	// todo: authorize user
-	// todo: use mux.Var(r) to parse {link_id} into m.Link, and {id} into m.Id
-	w.WriteHeader(http.StatusNotImplemented)
+	aid, ok := r.Context().Value("account_id").(string)
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	vars := mux.Vars(r)
+	accountId, ok := vars["id"]
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+	if accountId != aid {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	linkId, ok := vars["link_id"]
+	if !ok {
+		w.WriteHeader(http.StatusInternalServerError)
+		return
+	}
+
+	err := a.LinkUseCases.DeleteLink(linkId, aid)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		return
+	}
+	w.WriteHeader(http.StatusOK)
 }
 
 func (a *Api) authorize(handler http.HandlerFunc) http.HandlerFunc {

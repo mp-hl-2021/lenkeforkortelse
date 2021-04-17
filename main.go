@@ -1,10 +1,12 @@
 package main
 
 import (
+	"github.com/mp-hl-2021/lenkeforkortelse/accountstorage"
 	"github.com/mp-hl-2021/lenkeforkortelse/api"
 	"github.com/mp-hl-2021/lenkeforkortelse/auth"
-	"github.com/mp-hl-2021/lenkeforkortelse/usecases"
-	"github.com/mp-hl-2021/lenkeforkortelse/accountstorage"
+	"github.com/mp-hl-2021/lenkeforkortelse/linkstorage"
+	"github.com/mp-hl-2021/lenkeforkortelse/usecases/account"
+	"github.com/mp-hl-2021/lenkeforkortelse/usecases/link"
 
 	"flag"
 	"io/ioutil"
@@ -25,12 +27,16 @@ func main() {
 		panic(err)
 	}
 
-	accountUseCases := &usecases.AccountUseCases{
+	accountUseCases := &account.AccountUseCases{
 		AccountStorage: accountstorage.NewMemory(),
 		Auth: a,
 	}
 
-	service := api.NewApi(accountUseCases, &usecases.LinkUseCases{})
+	linkUseCases := &link.LinkUseCases{
+		LinkStorage: linkstorage.NewMemory(),
+	}
+
+	service := api.NewApi(accountUseCases, linkUseCases)
 
 	server := http.Server{
 		Addr:         "localhost:8080",
