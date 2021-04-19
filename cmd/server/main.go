@@ -1,14 +1,13 @@
 package main
 
 import (
-	"github.com/mp-hl-2021/lenkeforkortelse/accountstorage"
-	"github.com/mp-hl-2021/lenkeforkortelse/api"
-	"github.com/mp-hl-2021/lenkeforkortelse/auth"
-	"github.com/mp-hl-2021/lenkeforkortelse/linkstorage"
-	"github.com/mp-hl-2021/lenkeforkortelse/usecases/account"
-	"github.com/mp-hl-2021/lenkeforkortelse/usecases/link"
-
 	"flag"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/httpapi"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/memory/accountrepo"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/memory/linkrepo"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/service/token"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/account"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/link"
 	"io/ioutil"
 	"net/http"
 	"time"
@@ -22,21 +21,21 @@ func main() {
 	privateKeyBytes, err := ioutil.ReadFile(*privateKeyPath)
 	publicKeyBytes, err := ioutil.ReadFile(*publicKeyPath)
 
-	a, err := auth.NewJwtHandler(privateKeyBytes, publicKeyBytes, 100 * time.Minute)
+	a, err := token.NewJwtHandler(privateKeyBytes, publicKeyBytes, 100*time.Minute)
 	if err != nil {
 		panic(err)
 	}
 
 	accountUseCases := &account.AccountUseCases{
-		AccountStorage: accountstorage.NewMemory(),
-		Auth: a,
+		AccountStorage: accountrepo.NewMemory(),
+		Auth:           a,
 	}
 
 	linkUseCases := &link.LinkUseCases{
-		LinkStorage: linkstorage.NewMemory(),
+		LinkStorage: linkrepo.NewMemory(),
 	}
 
-	service := api.NewApi(accountUseCases, linkUseCases)
+	service := httpapi.NewApi(accountUseCases, linkUseCases)
 
 	server := http.Server{
 		Addr:         "localhost:8080",
