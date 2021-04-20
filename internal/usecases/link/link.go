@@ -52,9 +52,18 @@ func (a *LinkUseCases) CutLink(lnk string, accountId *string) (string, error) {
 	return l.LinkId, nil
 }
 
-func (a *LinkUseCases) DeleteLink(link string, accountId string) error {
-	err := a.LinkStorage.DeleteLink(link, accountId)
-	return err
+func (a *LinkUseCases) DeleteLink(lnk string, accountId string) error {
+	dbLink, err := a.LinkStorage.GetLinkByLinkId(lnk)
+	if err != nil {
+		if err == link.ErrNotFound {
+			return nil
+		}
+		return err
+	}
+	if dbLink.AccountId != nil && *dbLink.AccountId != accountId {
+		return link.ErrAccessDenied
+	}
+	return a.LinkStorage.DeleteLink(lnk)
 }
 
 func (a *LinkUseCases) GetLinksByAccountId(accountId string) ([]Link, error) {

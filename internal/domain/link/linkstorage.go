@@ -19,7 +19,7 @@ type Link struct {
 type Interface interface {
 	CheckIfLinkExists(linkId string) bool
 	StoreLink(link Link) (Link, error)
-	DeleteLink(linkId string, accountId string) error
+	DeleteLink(linkId string) error
 	GetLinkByLinkId(linkId string) (Link, error)
 	GetLinksByAccountId(accountId string) ([]Link, error)
 }

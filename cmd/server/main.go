@@ -3,12 +3,16 @@ package main
 import (
 	"flag"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/httpapi"
-	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/memory/accountrepo"
-	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/memory/linkrepo"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/postgres/accountrepo"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/postgres/linkrepo"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/service/token"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/account"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/link"
 	"io/ioutil"
+
+	"database/sql"
+	_ "github.com/lib/pq"
+
 	"net/http"
 	"time"
 )
@@ -26,19 +30,27 @@ func main() {
 		panic(err)
 	}
 
+	// todo: pass connection args through config
+	connStr := "user=postgres password=12345678 host=db dbname=postgres sslmode=disable"
+	conn, err := sql.Open("postgres", connStr)
+	if err != nil {
+		panic(err)
+	}
+	//defer conn.Close()
+
 	accountUseCases := &account.AccountUseCases{
-		AccountStorage: accountrepo.NewMemory(),
+		AccountStorage: accountrepo.New(conn),
 		Auth:           a,
 	}
 
 	linkUseCases := &link.LinkUseCases{
-		LinkStorage: linkrepo.NewMemory(),
+		LinkStorage: linkrepo.New(conn),
 	}
 
 	service := httpapi.NewApi(accountUseCases, linkUseCases)
 
 	server := http.Server{
-		Addr:         "localhost:8080",
+		Addr:         ":8080",
 		ReadTimeout:  10 * time.Second,
 		WriteTimeout: 10 * time.Second,
 

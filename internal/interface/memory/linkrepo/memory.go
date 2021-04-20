@@ -44,15 +44,12 @@ func (m *Memory) StoreLink(lnk link.Link) (link.Link, error) {
 	return lnk, nil
 }
 
-func (m *Memory) DeleteLink(lnk string, accountId string) error {
+func (m *Memory) DeleteLink(lnk string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	l, ok := m.linkByLinkId[lnk]
 	if !ok {
 		return link.ErrNotFound
-	}
-	if l.AccountId == nil || *l.AccountId != accountId {
-		return link.ErrAccessDenied
 	}
 	delete(m.linkByLinkId, lnk)
 	delete(m.linksByAccountId[*l.AccountId], lnk)
