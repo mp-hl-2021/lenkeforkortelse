@@ -18,6 +18,10 @@ docker-compose up
 
 ## Пример запросов:
 
+В примерах используется язык `Python` и библиотека `requests` для GET/POST запросов.
+(Вы можете использовать любую утилиту для запросов)
+
+
 Регистрация
 ```
 requests.post("http://localhost:8080/signup", json={"login": "ivanpavlov", "password": "SomeComplicated2131"})
