@@ -1,14 +1,16 @@
 package httpapi
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/prom"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/account"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/link"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"log"
+
 	"net/http"
-	"strings"
 )
 
 type Api struct {
@@ -37,13 +39,20 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/signin", a.postSignin).Methods(http.MethodPost)
 
 	// lookup all my links
-	router.HandleFunc("/accounts/{id}", a.authorize(a.getAccount)).Methods(http.MethodGet)
+	router.HandleFunc("/accounts/{id}", a.authenticate(a.getAccount)).Methods(http.MethodGet)
 
 	// create link with account
-	router.HandleFunc("/accounts/{id}/", a.authorize(a.postCreateUserLink)).Methods(http.MethodPost)
+	router.HandleFunc("/accounts/{id}/", a.authenticate(a.postCreateUserLink)).Methods(http.MethodPost)
 
 	// /accounts/{id}/delete/{link_id}
-	router.HandleFunc("/accounts/{id}/delete/{link_id}", a.authorize(a.getDeleteLink)).Methods(http.MethodGet)
+	router.HandleFunc("/accounts/{id}/delete/{link_id}", a.authenticate(a.getDeleteLink)).Methods(http.MethodGet)
+
+	router.Handle("/metrics", promhttp.Handler())
+	log.Fatalln(http.ListenAndServe(":9090", nil))
+
+	router.Use(prom.Measurer())
+	router.Use(a.logger)
+	fmt.Println("test")
 
 	return router
 }
@@ -262,23 +271,4 @@ func (a *Api) getDeleteLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-}
-
-func (a *Api) authorize(handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		bearHeader := r.Header.Get("Authorization")
-		strArr := strings.Split(bearHeader, " ")
-		if len(strArr) != 2 {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		token := strArr[1]
-		id, err := a.AccountUseCases.Authenticate(token)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		ctx := context.WithValue(r.Context(), "account_id", id)
-		handler(w, r.WithContext(ctx))
-	}
 }
