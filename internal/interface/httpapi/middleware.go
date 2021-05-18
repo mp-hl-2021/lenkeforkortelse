@@ -58,15 +58,3 @@ func (a *Api) logger(next http.Handler) http.Handler {
 			r.Method, r.URL.String(), o.StatusCode(), r.RemoteAddr, time.Since(start))
 	})
 }
-
-//"github.com/rs/zerolog/log"
-// httpLogger := log.With().Str("module", "http-server").Logger()
-//
-//		httpLogger.Info().
-//			Str("method", r.Method).
-//			Str("url", r.URL.String()).
-//			Str("protocol", r.Proto).
-//			Int("status-code", o.StatusCode()).
-//			Str("remote-addr", r.RemoteAddr).
-//			Dur("duration", time.Since(start)).
-//			Msg("")

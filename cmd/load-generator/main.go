@@ -22,7 +22,7 @@ var config = struct {
 
 func init() {
 	address := flag.String("address", "http://localhost:8080", "link-shortener address")
-	concurrencyLevel := flag.Int("concurrency", 1, "a number of concurrent requests")
+	concurrencyLevel := flag.Int("concurrency", 32, "a number of concurrent requests")
 	flag.Parse()
 
 	config.address = *address

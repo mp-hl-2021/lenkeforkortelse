@@ -22,7 +22,6 @@ var (
 	durationHttpRequests = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "http_handlers_duration_seconds",
 		Help: "HTTP requests duration in seconds",
-		//Buckets:     nil,
 	}, []string{"path"})
 )
 
@@ -37,7 +36,6 @@ func Measurer() func(next http.Handler) http.Handler {
 			path, _ := route.GetPathTemplate()
 
 			durationHttpRequests.WithLabelValues(path).Observe(time.Since(now).Seconds())
-			// todo: add success label
 		}))
 	}
 }

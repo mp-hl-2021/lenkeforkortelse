@@ -49,7 +49,6 @@ func (a *Api) Router() http.Handler {
 
 	router.Use(prom.Measurer())
 	router.Use(a.logger)
-	fmt.Println("test")
 
 	return router
 }
