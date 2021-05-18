@@ -1,8 +1,10 @@
 package account
 
 import (
+	"fmt"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/domain/account"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/service/token"
+	"time"
 
 	"errors"
 	"golang.org/x/crypto/bcrypt"
@@ -34,6 +36,16 @@ type AccountUseCasesInterface interface {
 	GetAccountById(id string) (Account, error)
 	LoginToAccount(login, password string) (string, error)
 	Authenticate(token string) (string, error)
+
+	//Logging
+	LoggerCreateAccount(
+		createAccount func(login, password string) (Account, error)) func(login, password string) (Account, error)
+	LoggerGetAccountById(
+		getAccountById func(id string) (Account, error)) func(id string) (Account, error)
+	LoggerLoginToAccount(
+		loginToAccount func(login, password string) (string, error)) func(login, password string) (string, error)
+	LoggerAuthenticate(
+		authenticate func(token string) (string, error)) func(token string) (string, error)
 }
 
 type AccountUseCases struct {
@@ -143,4 +155,57 @@ func validatePassword(password string) error {
 		return ErrNoCapitalLetters
 	}
 	return nil
+}
+
+func (a *AccountUseCases) logger(method string, err error, start time.Time) {
+	status := "SUCCESS"
+	if err != nil {
+		status = err.Error()
+	}
+	fmt.Printf("method: %s; status-code: %s; call time: %v; duration: %v;\n",
+		method, status, start, time.Since(start))
+}
+
+func (a *AccountUseCases) LoggerCreateAccount(
+	createAccount func(login, password string) (Account, error)) func(login, password string) (Account, error) {
+
+	return func(login, password string) (Account, error) {
+		start := time.Now()
+		acc, err := createAccount(login, password)
+		a.logger("CreateAccount", err, start)
+		return acc, err
+	}
+}
+
+func (a *AccountUseCases) LoggerGetAccountById(
+	getAccountById func(id string) (Account, error)) func(id string) (Account, error) {
+
+	return func(id string) (Account, error) {
+		start := time.Now()
+		acc, err := getAccountById(id)
+		a.logger("GetAccountById", err, start)
+		return acc, err
+	}
+}
+
+func (a *AccountUseCases) LoggerLoginToAccount(
+	loginToAccount func(login, password string) (string, error)) func(login, password string) (string, error) {
+
+	return func(login, password string) (string, error) {
+		start := time.Now()
+		token, err := loginToAccount(login, password)
+		a.logger("LoginToAccount", err, start)
+		return token, err
+	}
+}
+
+func (a *AccountUseCases) LoggerAuthenticate(
+	authenticate func(token string) (string, error)) func(token string) (string, error) {
+
+	return func(token string) (string, error) {
+		start := time.Now()
+		token, err := authenticate(token)
+		a.logger("Authenticate", err, start)
+		return token, err
+	}
 }

@@ -1,14 +1,14 @@
 package httpapi
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/prom"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/account"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/link"
+	"github.com/prometheus/client_golang/prometheus/promhttp"
 	"net/http"
-	"strings"
 )
 
 type Api struct {
@@ -31,19 +31,24 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/links", a.postCreateLink).Methods(http.MethodPost)
 
 	// /{link} get redirect
-	router.HandleFunc("/{link_id}", a.getPage).Methods(http.MethodGet)
+	router.HandleFunc("/link/{link_id}", a.getPage).Methods(http.MethodGet)
 
 	router.HandleFunc("/signup", a.postSignup).Methods(http.MethodPost)
 	router.HandleFunc("/signin", a.postSignin).Methods(http.MethodPost)
 
 	// lookup all my links
-	router.HandleFunc("/accounts/{id}", a.authorize(a.getAccount)).Methods(http.MethodGet)
+	router.HandleFunc("/accounts/{id}", a.authenticate(a.getAccount)).Methods(http.MethodGet)
 
 	// create link with account
-	router.HandleFunc("/accounts/{id}/", a.authorize(a.postCreateUserLink)).Methods(http.MethodPost)
+	router.HandleFunc("/accounts/{id}/", a.authenticate(a.postCreateUserLink)).Methods(http.MethodPost)
 
 	// /accounts/{id}/delete/{link_id}
-	router.HandleFunc("/accounts/{id}/delete/{link_id}", a.authorize(a.getDeleteLink)).Methods(http.MethodGet)
+	router.HandleFunc("/accounts/{id}/delete/{link_id}", a.authenticate(a.getDeleteLink)).Methods(http.MethodGet)
+
+	router.Handle("/metrics", promhttp.Handler())
+
+	router.Use(prom.Measurer())
+	router.Use(a.logger)
 
 	return router
 }
@@ -61,7 +66,7 @@ func (a *Api) postSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc, err := a.AccountUseCases.CreateAccount(m.Login, m.Password)
+	acc, err := a.AccountUseCases.LoggerCreateAccount(a.AccountUseCases.CreateAccount)(m.Login, m.Password)
 	if err != nil {
 		switch err {
 		case
@@ -93,7 +98,7 @@ func (a *Api) postSignin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := a.AccountUseCases.LoginToAccount(m.Login, m.Password)
+	token, err := a.AccountUseCases.LoggerLoginToAccount(a.AccountUseCases.LoginToAccount)(m.Login, m.Password)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -118,7 +123,7 @@ func (a *Api) postCreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortLink, err := a.LinkUseCases.CutLink(m.Link, nil)
+	shortLink, err := a.LinkUseCases.LoggerCutLink(a.LinkUseCases.CutLink)(m.Link, nil)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -139,7 +144,7 @@ func (a *Api) getPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	l, err := a.LinkUseCases.GetLinkByLinkId(linkId)
+	l, err := a.LinkUseCases.LoggerGetLinkByLinkId(a.LinkUseCases.GetLinkByLinkId)(linkId)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -171,7 +176,7 @@ func (a *Api) getAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	links, err := a.LinkUseCases.GetLinksByAccountId(aid)
+	links, err := a.LinkUseCases.LoggerGetLinksByAccountId(a.LinkUseCases.GetLinksByAccountId)(aid)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -220,7 +225,7 @@ func (a *Api) postCreateUserLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortLink, err := a.LinkUseCases.CutLink(m.Link, &aid)
+	shortLink, err := a.LinkUseCases.LoggerCutLink(a.LinkUseCases.CutLink)(m.Link, &aid)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -256,29 +261,10 @@ func (a *Api) getDeleteLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := a.LinkUseCases.DeleteLink(linkId, aid)
+	err := a.LinkUseCases.LoggerDeleteLink(a.LinkUseCases.DeleteLink)(linkId, aid)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
 	}
 	w.WriteHeader(http.StatusOK)
-}
-
-func (a *Api) authorize(handler http.HandlerFunc) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		bearHeader := r.Header.Get("Authorization")
-		strArr := strings.Split(bearHeader, " ")
-		if len(strArr) != 2 {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-		token := strArr[1]
-		id, err := a.AccountUseCases.Authenticate(token)
-		if err != nil {
-			w.WriteHeader(http.StatusUnauthorized)
-			return
-		}
-		ctx := context.WithValue(r.Context(), "account_id", id)
-		handler(w, r.WithContext(ctx))
-	}
 }

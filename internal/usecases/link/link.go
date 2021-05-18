@@ -1,6 +1,7 @@
 package link
 
 import (
+	"fmt"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/domain/link"
 	"math/rand"
 	"time"
@@ -29,6 +30,16 @@ type LinkUseCasesInterface interface {
 	CutLink(link string, accountId *string) (string, error)
 	DeleteLink(linkId string, accountId string) error
 	GetLinksByAccountId(accountId string) ([]Link, error)
+
+	//Logging
+	LoggerGetLinkByLinkId(
+		getLinkByLinkId func(linkId string) (string, error)) func(linkId string) (string, error)
+	LoggerCutLink(
+		cutLink func(link string, accountId *string) (string, error)) func(link string, accountId *string) (string, error)
+	LoggerDeleteLink(
+		deleteLink func(linkId string, accountId string) error) func(linkId string, accountId string) error
+	LoggerGetLinksByAccountId(
+		getLinksByAccountId func(accountId string) ([]Link, error)) func(accountId string) ([]Link, error)
 }
 
 func (a *LinkUseCases) GetLinkByLinkId(lnk string) (string, error) {
@@ -109,4 +120,57 @@ func (a *LinkUseCases) generateFreeLinkId() (linkId string) {
 		}
 	}
 	return linkId
+}
+
+func (a *LinkUseCases) logger(method string, err error, start time.Time) {
+	status := "SUCCESS"
+	if err != nil {
+		status = err.Error()
+	}
+	fmt.Printf("method: %s; status-code: %s; call time: %v; duration: %v;\n",
+		method, status, start, time.Since(start))
+}
+
+func (a *LinkUseCases) LoggerGetLinkByLinkId(
+	getLinkByLinkId func(linkId string) (string, error)) func(linkId string) (string, error) {
+
+	return func(linkId string) (string, error) {
+		start := time.Now()
+		link, err := getLinkByLinkId(linkId)
+		a.logger("GetLinkByLinkId", err, start)
+		return link, err
+	}
+}
+
+func (a *LinkUseCases) LoggerCutLink(
+	cutLink func(link string, accountId *string) (string, error)) func(link string, accountId *string) (string, error) {
+
+	return func(link string, accountId *string) (string, error) {
+		start := time.Now()
+		linkId, err := cutLink(link, accountId)
+		a.logger("CutLink", err, start)
+		return linkId, err
+	}
+}
+
+func (a *LinkUseCases) LoggerDeleteLink(
+	deleteLink func(linkId string, accountId string) error) func(linkId string, accountId string) error {
+
+	return func(linkId string, accountId string) error {
+		start := time.Now()
+		err := deleteLink(linkId, accountId)
+		a.logger("DeleteLink", err, start)
+		return err
+	}
+}
+
+func (a *LinkUseCases) LoggerGetLinksByAccountId(
+	getLinksByAccountId func(accountId string) ([]Link, error)) func(accountId string) ([]Link, error) {
+
+	return func(accountId string) ([]Link, error) {
+		start := time.Now()
+		res, err := getLinksByAccountId(accountId)
+		a.logger("GetLinksByAccountId", err, start)
+		return res, err
+	}
 }
