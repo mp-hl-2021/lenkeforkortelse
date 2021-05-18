@@ -21,7 +21,7 @@ var (
 	})
 	durationHttpRequests = promauto.NewHistogramVec(prometheus.HistogramOpts{
 		Name: "http_handlers_duration_seconds",
-		Help: "lenkeforkortelse HTTP requests duration in seconds",
+		Help: "HTTP requests duration in seconds",
 		//Buckets:     nil,
 	}, []string{"path"})
 )

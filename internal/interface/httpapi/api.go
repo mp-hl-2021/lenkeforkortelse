@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/gorilla/mux"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/prom"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/account"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/link"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
@@ -30,7 +31,6 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/links", a.postCreateLink).Methods(http.MethodPost)
 
 	// /{link} get redirect
-	// Alya - krasava.
 	router.HandleFunc("/link/{link_id}", a.getPage).Methods(http.MethodGet)
 
 	router.HandleFunc("/signup", a.postSignup).Methods(http.MethodPost)
@@ -46,11 +46,10 @@ func (a *Api) Router() http.Handler {
 	router.HandleFunc("/accounts/{id}/delete/{link_id}", a.authenticate(a.getDeleteLink)).Methods(http.MethodGet)
 
 	router.Handle("/metrics", promhttp.Handler())
-	//log.Fatalln(http.ListenAndServe(":9090", nil))
-	//
-	//router.Use(prom.Measurer())
-	//router.Use(a.logger)
-	//fmt.Println("test")
+
+	router.Use(prom.Measurer())
+	router.Use(a.logger)
+	fmt.Println("test")
 
 	return router
 }
