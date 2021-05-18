@@ -66,7 +66,7 @@ func (a *Api) postSignup(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	acc, err := a.AccountUseCases.CreateAccount(m.Login, m.Password)
+	acc, err := a.AccountUseCases.LoggerCreateAccount(a.AccountUseCases.CreateAccount)(m.Login, m.Password)
 	if err != nil {
 		switch err {
 		case
@@ -98,7 +98,7 @@ func (a *Api) postSignin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	token, err := a.AccountUseCases.LoginToAccount(m.Login, m.Password)
+	token, err := a.AccountUseCases.LoggerLoginToAccount(a.AccountUseCases.LoginToAccount)(m.Login, m.Password)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -123,7 +123,7 @@ func (a *Api) postCreateLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortLink, err := a.LinkUseCases.CutLink(m.Link, nil)
+	shortLink, err := a.LinkUseCases.LoggerCutLink(a.LinkUseCases.CutLink)(m.Link, nil)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -144,7 +144,7 @@ func (a *Api) getPage(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	l, err := a.LinkUseCases.GetLinkByLinkId(linkId)
+	l, err := a.LinkUseCases.LoggerGetLinkByLinkId(a.LinkUseCases.GetLinkByLinkId)(linkId)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -176,7 +176,7 @@ func (a *Api) getAccount(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	links, err := a.LinkUseCases.GetLinksByAccountId(aid)
+	links, err := a.LinkUseCases.LoggerGetLinksByAccountId(a.LinkUseCases.GetLinksByAccountId)(aid)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -225,7 +225,7 @@ func (a *Api) postCreateUserLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	shortLink, err := a.LinkUseCases.CutLink(m.Link, &aid)
+	shortLink, err := a.LinkUseCases.LoggerCutLink(a.LinkUseCases.CutLink)(m.Link, &aid)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return
@@ -261,7 +261,7 @@ func (a *Api) getDeleteLink(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err := a.LinkUseCases.DeleteLink(linkId, aid)
+	err := a.LinkUseCases.LoggerDeleteLink(a.LinkUseCases.DeleteLink)(linkId, aid)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		return

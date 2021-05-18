@@ -17,7 +17,7 @@ func (a *Api) authenticate(handler http.HandlerFunc) http.HandlerFunc {
 			return
 		}
 		token := strArr[1]
-		id, err := a.AccountUseCases.Authenticate(token)
+		id, err := a.AccountUseCases.LoggerAuthenticate(a.AccountUseCases.Authenticate)(token)
 		if err != nil {
 			w.WriteHeader(http.StatusUnauthorized)
 			return
@@ -54,7 +54,7 @@ func (a *Api) logger(next http.Handler) http.Handler {
 		start := time.Now()
 		o := &responseWriterObserver{ResponseWriter: w}
 		next.ServeHTTP(o, r)
-		fmt.Printf("method: %s; url: %s; status-code: %d; remote-addr: %s; duration: %v;\n",
-			r.Method, r.URL.String(), o.StatusCode(), r.RemoteAddr, time.Since(start))
+		fmt.Printf("method: %s; status-code: %d; url: %s; remote-addr: %s; request call time: %v; duration: %v;\n",
+			r.Method, o.StatusCode(), r.URL.String(), r.RemoteAddr, start, time.Since(start))
 	})
 }
