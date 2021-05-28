@@ -1,18 +1,17 @@
 package main
 
 import (
+	"database/sql"
 	"flag"
+	_ "github.com/lib/pq"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/httpapi"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/postgres/accountrepo"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/interface/postgres/linkrepo"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/pipeline"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/service/token"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/account"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/link"
 	"io/ioutil"
-
-	"database/sql"
-	_ "github.com/lib/pq"
-
 	"net/http"
 	"time"
 )
@@ -46,6 +45,8 @@ func main() {
 	linkUseCases := &link.LinkUseCases{
 		LinkStorage: linkrepo.New(conn),
 	}
+
+	pipeline.LinkStatusUpdater(linkUseCases)
 
 	service := httpapi.NewApi(accountUseCases, linkUseCases)
 

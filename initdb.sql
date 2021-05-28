@@ -16,5 +16,6 @@ create table links
 (
     linkId varchar(255) primary key,
     link text,
+    linkStatus int default 0,
     accountId varchar(255)
 );

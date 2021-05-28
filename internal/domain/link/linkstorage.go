@@ -2,6 +2,7 @@ package link
 
 import (
 	"errors"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/domain/status"
 )
 
 var (
@@ -11,9 +12,10 @@ var (
 )
 
 type Link struct {
-	LinkId    string
-	Link      string
-	AccountId *string
+	LinkId     string
+	Link       string
+	LinkStatus status.LinkStatus
+	AccountId  *string
 }
 
 type Interface interface {
@@ -22,4 +24,6 @@ type Interface interface {
 	DeleteLink(linkId string) error
 	GetLinkByLinkId(linkId string) (Link, error)
 	GetLinksByAccountId(accountId string) ([]Link, error)
+	UpdateLinkStatusByLinkId(linkId string, linkStatus status.LinkStatus) error
+	GetAllUserLinks() ([]Link, error)
 }
