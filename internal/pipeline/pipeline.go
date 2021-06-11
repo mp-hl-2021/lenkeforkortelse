@@ -5,19 +5,20 @@ import (
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/domain/status"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/usecases/link"
 	"net/http"
-	"sync"
 	"time"
 )
 
+const workerCount = 4
+
 func LinkStatusUpdater(luc *link.LinkUseCases) {
 	go func() {
-		links := make(chan link.Link)
+		links := make(chan link.Link, workerCount)
 
 		go func() {
 			for {
 				userLinks, err := luc.LinkStorage.GetAllUserLinks()
 				if err != nil {
-					panic(err)
+					fmt.Println("Bad `GetAllUserLinks` request to link database")
 				}
 				for _, lnk := range userLinks {
 					links <- link.Link{LinkId: lnk.LinkId, Link: lnk.Link, LinkStatus: lnk.LinkStatus}
@@ -26,14 +27,12 @@ func LinkStatusUpdater(luc *link.LinkUseCases) {
 			}
 		}()
 
-		var wg sync.WaitGroup
-		for i := 0; i < 4; i++ {
-			wg.Add(1)
+		for i := 0; i < workerCount; i++ {
 			go func() {
-				defer wg.Done()
 				for {
 					lnk, ok := <-links
 					if !ok {
+						fmt.Println("links channel has been closed and drained")
 						return
 					}
 					res, _ := http.Get(lnk.Link)
@@ -41,7 +40,10 @@ func LinkStatusUpdater(luc *link.LinkUseCases) {
 					if res.StatusCode == http.StatusNotFound {
 						s = status.Failed
 					}
-					_ = luc.LinkStorage.UpdateLinkStatusByLinkId(lnk.LinkId, s)
+					err := luc.LinkStorage.UpdateLinkStatusByLinkId(lnk.LinkId, s)
+					if err != nil {
+						fmt.Println(err)
+					}
 					if lnk.LinkStatus != s {
 						fmt.Printf("%v status changed from %v to %v\n",
 							lnk.LinkId, lnk.LinkStatus, s)
@@ -49,7 +51,5 @@ func LinkStatusUpdater(luc *link.LinkUseCases) {
 				}
 			}()
 		}
-
-		wg.Wait()
 	}()
 }
