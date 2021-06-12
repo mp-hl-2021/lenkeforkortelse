@@ -37,16 +37,17 @@ func LinkStatusUpdater(luc *link.LinkUseCases) {
 					}
 					res, _ := http.Get(lnk.Link)
 					s := status.OK
-					if res.StatusCode == http.StatusNotFound {
+					if res.StatusCode >= http.StatusBadRequest {
 						s = status.Failed
 					}
 					err := luc.LinkStorage.UpdateLinkStatusByLinkId(lnk.LinkId, s)
 					if err != nil {
 						fmt.Println(err)
-					}
-					if lnk.LinkStatus != s {
-						fmt.Printf("%v status changed from %v to %v\n",
-							lnk.LinkId, lnk.LinkStatus, s)
+					} else {
+						if lnk.LinkStatus != s {
+							fmt.Printf("%v status changed from %v to %v\n",
+								lnk.LinkId, lnk.LinkStatus, s)
+						}
 					}
 				}
 			}()
