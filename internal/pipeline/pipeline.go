@@ -35,19 +35,21 @@ func LinkStatusUpdater(luc *link.LinkUseCases) {
 						fmt.Println("links channel has been closed and drained")
 						return
 					}
-					res, _ := http.Get(lnk.Link)
+					res, err := http.Get(lnk.Link)
+					if err != nil {
+						fmt.Println(err)
+					}
 					s := status.OK
 					if res.StatusCode >= http.StatusBadRequest {
 						s = status.Failed
 					}
-					err := luc.LinkStorage.UpdateLinkStatusByLinkId(lnk.LinkId, s)
+					err = luc.LinkStorage.UpdateLinkStatusByLinkId(lnk.LinkId, s)
 					if err != nil {
 						fmt.Println(err)
-					} else {
-						if lnk.LinkStatus != s {
-							fmt.Printf("%v status changed from %v to %v\n",
-								lnk.LinkId, lnk.LinkStatus, s)
-						}
+					}
+					if lnk.LinkStatus != s {
+						fmt.Printf("%v status changed from %v to %v\n",
+							lnk.LinkId, lnk.LinkStatus, s)
 					}
 				}
 			}()
