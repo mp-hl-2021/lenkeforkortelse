@@ -3,6 +3,7 @@ package link
 import (
 	"fmt"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/domain/link"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/domain/status"
 	"math/rand"
 	"time"
 	"unsafe"
@@ -17,8 +18,9 @@ const (
 )
 
 type Link struct {
-	LinkId string
-	Link   string
+	LinkId     string
+	Link       string
+	LinkStatus status.LinkStatus
 }
 
 type LinkUseCases struct {
@@ -85,8 +87,9 @@ func (a *LinkUseCases) GetLinksByAccountId(accountId string) ([]Link, error) {
 	res := make([]Link, 0, len(links))
 	for _, l := range links {
 		res = append(res, Link{
-			LinkId: l.LinkId,
-			Link:   l.Link,
+			LinkId:     l.LinkId,
+			Link:       l.Link,
+			LinkStatus: l.LinkStatus,
 		})
 	}
 	return res, nil

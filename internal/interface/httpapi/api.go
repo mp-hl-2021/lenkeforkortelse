@@ -185,8 +185,9 @@ func (a *Api) getAccount(w http.ResponseWriter, r *http.Request) {
 	ret := getAccountResponseModel{Links: make([]link.Link, 0, len(links))}
 	for _, l := range links {
 		ret.Links = append(ret.Links, link.Link{
-			LinkId: l.LinkId,
-			Link:   l.Link,
+			LinkId:     l.LinkId,
+			Link:       l.Link,
+			LinkStatus: l.LinkStatus,
 		})
 	}
 

@@ -3,6 +3,7 @@ package linkrepo
 import (
 	"database/sql"
 	"github.com/mp-hl-2021/lenkeforkortelse/internal/domain/link"
+	"github.com/mp-hl-2021/lenkeforkortelse/internal/domain/status"
 )
 
 type Postgres struct {
@@ -69,7 +70,7 @@ func (p *Postgres) GetLinkByLinkId(linkId string) (link.Link, error) {
 }
 
 const queryLinksByAccount = `
-	select linkid, link from links where accountid = $1
+	select linkId, link, linkStatus from links where accountid = $1
 `
 
 func (p *Postgres) GetLinksByAccountId(accountId string) ([]link.Link, error) {
@@ -82,7 +83,43 @@ func (p *Postgres) GetLinksByAccountId(accountId string) ([]link.Link, error) {
 	links := make([]link.Link, 0)
 	for rows.Next() {
 		lnk := link.Link{}
-		if err := rows.Scan(&lnk.LinkId, &lnk.Link); err != nil {
+		if err := rows.Scan(&lnk.LinkId, &lnk.Link, &lnk.LinkStatus); err != nil {
+			return []link.Link{}, err
+		}
+		links = append(links, lnk)
+	}
+	if err := rows.Err(); err != nil {
+		return []link.Link{}, err
+	}
+	return links, nil
+}
+
+const queryUpdateLinkStatus = `
+	update links
+	set linkstatus = $2
+	where linkid = $1
+`
+
+func (p *Postgres) UpdateLinkStatusByLinkId(linkId string, linkStatus status.LinkStatus) error {
+	_, err := p.conn.Exec(queryUpdateLinkStatus, linkId, linkStatus)
+	return err
+}
+
+const queryGetAllUserLinks = `
+	select linkId, link, linkStatus from links where accountid != ''
+`
+
+func (p *Postgres) GetAllUserLinks() ([]link.Link, error) {
+	rows, err := p.conn.Query(queryGetAllUserLinks)
+	if err != nil {
+		return []link.Link{}, err
+	}
+	defer rows.Close()
+
+	links := make([]link.Link, 0)
+	for rows.Next() {
+		lnk := link.Link{}
+		if err := rows.Scan(&lnk.LinkId, &lnk.Link, &lnk.LinkStatus); err != nil {
 			return []link.Link{}, err
 		}
 		links = append(links, lnk)
